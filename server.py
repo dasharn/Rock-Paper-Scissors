@@ -1,6 +1,7 @@
 import socket
-from _from _thread import start_new_thread
+from  _thread import start_new_thread
 import pickle
+import sys
 from game import Game
 import socket
 
@@ -13,6 +14,18 @@ class Server:
         self.id_count = 0
 
     def setup_socket(self):
+        """
+        Sets up the socket connection.
+
+        This method creates a socket object, binds it to the specified server address and port, 
+        and starts listening for incoming connections. If binding fails, it prints an error message 
+        and exits the program.
+
+        Returns
+        -------
+        s : socket
+            The socket object that's been set up.
+        """
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
             s.bind((self.server, self.port))
@@ -26,6 +39,25 @@ class Server:
 
 
     def handle_client(self, conn, player, game_id):
+        """
+        Handles client connection and game data processing.
+
+        This method sends the player data to the client, then enters a loop where it continuously 
+        receives data from the client. If the game_id is not in the games dictionary, it breaks 
+        the loop. If no data is received, it also breaks the loop. Otherwise, it processes the 
+        received data and sends the updated game state back to the client. If any exception occurs, 
+        it breaks the loop and closes the connection.
+
+        Parameters
+        ----------
+        conn : socket
+            The client socket object.
+        player : object
+            The player object.
+        game_id : int
+            The id of the game.
+
+        """
         conn.send(str.encode(str(player)))
 
         while True:
@@ -49,12 +81,41 @@ class Server:
         self.close_connection(conn, game_id)
 
     def process_data(self, game, data, player):
+        """
+        Processes the received data from the client.
+
+        This method checks the received data and performs actions based on its value. 
+        If the data is "reset", it resets the game. If the data is not "get", it makes a play.
+
+        Parameters
+        ----------
+        game : object
+            The game object.
+        data : str
+            The received data from the client.
+        player : object
+            The player object.
+        """
         if data == "reset":
             game.resetWent()
         elif data != "get":
             game.play(player, data)
 
     def close_connection(self, conn, game_id):
+        """
+        Closes the connection with the client and deletes the game.
+
+        This method prints a message indicating that the connection was lost, 
+        attempts to delete the game from the games dictionary, decreases the id_count by 1, 
+        and closes the connection.
+
+        Parameters
+        ----------
+        conn : socket
+            The client socket object.
+        game_id : int
+            The id of the game.
+        """
         print("Lost connection")
         try:
             del self.games[game_id]
@@ -65,6 +126,15 @@ class Server:
         conn.close()
 
     def run(self):
+        """
+        Runs the server.
+
+        This method enters a loop where it waits for a client to connect. 
+        When a client connects, it increments the id_count, determines the player number, 
+        and either creates a new game or sets the existing game to ready. 
+        It then starts a new thread to handle the client.
+
+        """
         while True:
             conn, addr = self.s.accept()
             print("Connected to:", addr)
