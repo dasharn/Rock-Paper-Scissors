@@ -10,7 +10,7 @@ class Server:
         self.port = port
         self.s = self.setup_socket()
         self.games = {}
-        self.idCount = 0
+        self.id_count = 0
 
     def setup_socket(self):
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -61,7 +61,7 @@ class Server:
             print("Closing Game", game_id)
         except:
             pass
-        self.idCount -= 1
+        self.id_count -= 1
         conn.close()
 
     def run(self):
@@ -69,10 +69,10 @@ class Server:
             conn, addr = self.s.accept()
             print("Connected to:", addr)
 
-            self.idCount += 1
+            self.id_count += 1
             p = 0
-            game_id = (self.idCount - 1)//2
-            if self.idCount % 2 == 1:
+            game_id = (self.id_count - 1)//2
+            if self.id_count % 2 == 1:
                 self.games[game_id] = Game(game_id)
                 print("Creating a new game...")
             else:
@@ -82,5 +82,16 @@ class Server:
             start_new_thread(self.handle_client, (conn, p, game_id))
 
 if __name__ == "__main__":
-    s = Server()
+    if len(sys.argv) != 3:
+        print("Usage: python server.py <server> <port> \n e.g. python server.py localhost 5555")
+        sys.exit(1)
+
+    try:
+        server = sys.argv[1]
+        port = int(sys.argv[2])
+    except ValueError:
+        print("Error: Port must be an integer")
+        sys.exit(1)
+
+    s = Server(server, port)
     s.run()
