@@ -1,129 +1,86 @@
+
+
+from outcome import Outcome
+
+from move import Move
+
 class Game:
     """
-    A class to represent a game of Rock, Paper, Scissors.
+    A class to represent a game.
 
     ...
 
     Attributes
     ----------
-    id : int
-        unique identifier for the game
     p1_went : bool
-        whether player 1 has made a move
+        a flag indicating whether player 1 has made a move
     p2_went : bool
-        whether player 2 has made a move
+        a flag indicating whether player 2 has made a move
     ready : bool
-        whether the game is ready to start
+        a flag indicating whether the game is ready to start
+    id : int
+        the id of the game
     moves : list
-        the moves made by the players
+        a list to store the moves of the players
     wins : list
-        the wins by each player
+        a list to store the wins of the players
     ties : int
-        the number of ties
+        a counter for the number of ties
     winning_combinations : dict
-        the winning combinations for the game
+        a dictionary to store the winning combinations
 
-    Methods
-    -------
-    player_move(p):
-        Returns the move made by the player.
-    play(player, move):
-        Records the move made by the player.
-    connected():
-        Returns whether the game is ready to start.
-    both_went():
-        Returns whether both players have made a move.
-    winner():
-        Returns the winner of the game.
-    reset_went():
-        Resets the moves made by the players.
     """
-
-    def __init__(self, id):
-        """
-        Constructs all the necessary attributes for the game object.
-
-        Parameters
-        ----------
-            id : int
-                unique identifier for the game
-        """
-
+    def __init__(self, game_id: int):
         self.p1_went = False
         self.p2_went = False
         self.ready = False
-        self.id = id
+        self.id = game_id
         self.moves = [None, None]
-        self.wins = [0,0]
+        self.wins = [0, 0]
+        self.winning_combinations = [('R', 'S'), ('S', 'P'), ('P', 'R')] # for player 1
         self.ties = 0
-        self.winning_combinations = {'RS': 0, 'SP': 0, 'PR': 0, 'SR': 1, 'PS': 1, 'RP': 1}
 
-    
-    def player_move(self, p):
-        """
-        Returns the move made by the player.
+    def get_player_move(self, player: int) -> Move:
+        """Get the move made by a player."""
+        return Move(self.moves[player]).value
 
-        Parameters
-        ----------
-            p : int
-                player number (0 or 1)
-
-        Returns
-        -------
-            move : str
-                move made by the player
-        """
-
-        return self.moves[p]
-
-    def play(self, player, move):
-        """
-        Records the move made by the player.
-
-        Parameters
-        ----------
-            player : int
-                player number (0 or 1)
-            move : str
-                move made by the player
-        """
-
-        self.moves[player] = move
+    def play(self, player: int, move: Move):
+        """Record the move made by a player."""
+        self.moves[player] = move.value
         if player == 0:
             self.p1_went = True
         else:
             self.p2_went = True
 
-    
-    def connected(self):
-        """Returns whether the game is ready to start."""
+    def connected(self) -> bool:
+        """Check if the game is ready to start."""
         return self.ready
 
-    
-    def both_went(self):
-        """Returns whether both players have made a move."""
+    def both_went(self) -> bool:
+        """Check if both players have made a move."""
         return self.p1_went and self.p2_went
 
-    
-    def winner(self):
-        """
-        Returns the winner of the game.
+    def winner(self) -> Outcome:
+        """Determine the winner of the game."""
+        p1 = self.moves[0]
+        p2 = self.moves[1]
 
-        Returns
-        -------
-            winner : int
-                winner of the game (0 or 1), or None if it's a tie
-        """
+        if p1 == p2:
+            return Outcome.TIE
 
-        p1 = self.moves[0].upper()[0]
-        p2 = self.moves[1].upper()[0]
+        
 
-        if p1 == p2:  # It's a tie
-            return -1
-
-        return self.winning_combinations.get(p1 + p2)
+        if (p1, p2) in self.winning_combinations:
+            return Outcome.PLAYER1.value
+        else:
+            return Outcome.PLAYER2.value
 
     def reset_went(self):
-        """Resets the moves made by the players."""
+        """Reset the moves made by the players."""
         self.p1_went = False
         self.p2_went = False
+
+g = Game(0)
+g.moves = ['R', 'P']
+print(g.get_player_move(0))
+print(g.winner())

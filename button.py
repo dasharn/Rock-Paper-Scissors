@@ -1,5 +1,5 @@
 import pygame
-
+from settings import ButtonSettings
 class Button:
     """
     A class to represent a button in a pygame window.
@@ -63,7 +63,7 @@ class Button:
         self.color = color
         self.width = width
         self.height = height
-        self.font = pygame.font.SysFont("comicsans", font_size)
+        self.font = pygame.font.SysFont(ButtonSettings.FONT, font_size)
         self.rect = pygame.Rect(x, y, self.width, self.height)
 
     def draw(self, win):

@@ -6,7 +6,37 @@ from game import Game
 import socket
 
 class Server:
+    """
+    A class to represent a server.
+
+    ...
+
+    Attributes
+    ----------
+    server : str
+        the server address (default is localhost)
+    port : int
+        the port number to connect to (default is 5555)
+    s : socket
+        the socket object
+    games : dict
+        a dictionary to store games
+    id_count : int
+        a counter for game ids
+
+    """
+
     def __init__(self, server="localhost", port=5555):
+        """
+        Constructs all the necessary attributes for the server object.
+
+        Parameters
+        ----------
+            server : str, optional
+                server address (default is localhost)
+            port : int, optional
+                port number (default is 5555)
+        """
         self.server = server
         self.port = port
         self.s = self.setup_socket()
