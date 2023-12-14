@@ -1,4 +1,4 @@
-# Rock-Paper-Scissors Multiplayer Game - README
+# Rock-Paper-Scissors Multiplayer Game 
 
 ## Overview
 
