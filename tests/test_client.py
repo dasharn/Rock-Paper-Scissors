@@ -7,7 +7,7 @@ class TestClient(unittest.TestCase):
 
     def test_draw_text(self):
         # TODO: Implement test case
-        pass
+        
 
     def test_redraw_window(self):
         # TODO: Implement test case
