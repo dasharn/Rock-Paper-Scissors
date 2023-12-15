@@ -2,6 +2,7 @@ import socket
 from _thread import *
 import pickle
 from game import Game
+import argparse
 
 class Server:
     """
@@ -136,6 +137,22 @@ class Server:
         self.cleanup_game(conn, game_id)
 
     def cleanup_game(self, conn, game_id):
+        """
+        Receives data from the server and returns it.
+
+        This method attempts to receive data from the server and deserialize it using pickle.
+        If the receive and deserialization are successful, it returns the deserialized data.
+        If an error occurs during this process, it prints the error and returns None.
+
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        object
+            The data received from the server, or None if there was a receive error.
+        """
         print("Lost connection")
         try:
             del self.games[game_id]
@@ -161,7 +178,7 @@ class Server:
         Returns
         -------
         None
-    """
+        """
         while True:
             conn, addr = self.s.accept()
             print("Connected to:", addr)
@@ -179,6 +196,20 @@ class Server:
             start_new_thread(self.threaded_client, (conn, p, game_id))
 
 if __name__ == "__main__":
-    server = Server()
-    server.run_server()
+    # Create an ArgumentParser object
+    parser = argparse.ArgumentParser(description="Multiplayer Game Server")
 
+    # Add command-line arguments for server address and port number
+    parser.add_argument("server_address", type=str, help="Server address (e.g., 'localhost')")
+    parser.add_argument("port_number", type=int, help="Port number (e.g., 5555)")
+
+    # Parse the command-line arguments
+    args = parser.parse_args()
+
+    # Create a Server object with the specified server address and port number
+    server = Server()
+    server.server = args.server_address
+    server.port = args.port_number
+
+    # Start the server
+    server.run_server()
