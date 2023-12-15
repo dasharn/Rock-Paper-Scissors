@@ -1,94 +1,118 @@
 import socket
-from  _thread import start_new_thread
+from _thread import *
 import pickle
-import sys
 from game import Game
-import socket
 
 class Server:
     """
-    A class to represent a server.
+    A class to represent a server for managing multiple games and their respective clients.
 
     ...
 
     Attributes
     ----------
     server : str
-        the server address (default is localhost)
+        a string representing the server address, default is "localhost"
     port : int
-        the port number to connect to (default is 5555)
+        an integer representing the port number on which the server is listening, default is 5555
     s : socket
-        the socket object
+        a socket object representing the server socket
+    connected : set
+        a set to keep track of all connected clients
     games : dict
-        a dictionary to store games
-    id_count : int
-        a counter for game ids
-
+        a dictionary to keep track of all active games, with the game ID as the key and the game object as the value
+    idCount : int
+        an integer counter used to assign a unique ID to each game
     """
 
-    def __init__(self, server="localhost", port=5555):
+    def __init__(self):
         """
         Constructs all the necessary attributes for the server object.
 
         Parameters
         ----------
-            server : str, optional
-                server address (default is localhost)
-            port : int, optional
-                port number (default is 5555)
+            None
         """
-        self.server = server
-        self.port = port
+        self.server = "localhost"
+        self.port = 5555
         self.s = self.setup_socket()
+        self.connected = set()
         self.games = {}
-        self.id_count = 0
+        self.idCount = 0
 
     def setup_socket(self):
         """
-        Sets up the socket connection.
+        Sets up the server socket and starts listening for connections.
 
-        This method creates a socket object, binds it to the specified server address and port, 
-        and starts listening for incoming connections. If binding fails, it prints an error message 
-        and exits the program.
+        This method creates a new socket using the AF_INET address family and the SOCK_STREAM socket type.
+        It then binds the server and port to the socket and starts listening for connections.
+
+        Parameters
+        ----------
+        None
 
         Returns
         -------
         s : socket
-            The socket object that's been set up.
+            The server socket object that is set up and listening for connections.
         """
         s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        try:
-            s.bind((self.server, self.port))
-        except socket.error as e:
-            print(f"Socket error: {str(e)}")
-            sys.exit(1)
-
+        s.bind((self.server, self.port))
         s.listen(2)
         print("Waiting for a connection, Server Started")
         return s
-
-
-    def handle_client(self, conn, player, game_id):
+    
+    def handle_game_data(self, game, data, p):
         """
-        Handles client connection and game data processing.
+        Handles the game data received from the client.
 
-        This method sends the player data to the client, then enters a loop where it continuously 
-        receives data from the client. If the game_id is not in the games dictionary, it breaks 
-        the loop. If no data is received, it also breaks the loop. Otherwise, it processes the 
-        received data and sends the updated game state back to the client. If any exception occurs, 
-        it breaks the loop and closes the connection.
+        This method processes the data received from the client. If the data is "reset", it resets the game.
+        If the data is anything other than "get", it makes a move in the game. The method then returns the game.
+
+        Parameters
+        ----------
+        game : Game
+            The game object that the data is related to.
+        data : str
+            The data received from the client.
+        p : int
+            The player number (0 or 1).
+
+        Returns
+        -------
+        game : Game
+            The updated game object after handling the received data.
+        """
+        if data == "reset":
+            game.resetWent()
+        elif data != "get":
+            game.play(p, data)
+        return game
+
+    def threaded_client(self, conn, p, game_id):
+        """
+        Handles a client connection in a separate thread.
+
+        This method sends the player number to the client, then enters a loop where it continuously receives data from the client.
+        If the game ID is not in the games dictionary, or if no data is received, it breaks the loop.
+        Otherwise, it handles the received data and sends the updated game object back to the client.
+        If an exception occurs during this process, it prints the error and breaks the loop.
+        After breaking the loop, it cleans up the game and connection.
 
         Parameters
         ----------
         conn : socket
-            The client socket object.
-        player : object
-            The player object.
+        The socket connection object for the client.
+        p : int
+        The player number (0 or 1).
         game_id : int
-            The id of the game.
+        The unique ID of the game.
 
+        Returns
+        -------
+        None
         """
-        conn.send(str.encode(str(player)))
+        conn.send(str.encode(str(p)))
 
         while True:
             try:
@@ -101,97 +125,60 @@ class Server:
 
                 if not data:
                     break
-                else:
-                    self.process_data(game, data, player)
 
+                game = self.handle_game_data(game, data, p)
                 conn.sendall(pickle.dumps(game))
-            except:
+
+            except Exception as e:
+                print(f"Error occurred: {e}")
                 break
 
-        self.close_connection(conn, game_id)
+        self.cleanup_game(conn, game_id)
 
-    def process_data(self, game, data, player):
-        """
-        Processes the received data from the client.
-
-        This method checks the received data and performs actions based on its value. 
-        If the data is "reset", it resets the game. If the data is not "get", it makes a play.
-
-        Parameters
-        ----------
-        game : object
-            The game object.
-        data : str
-            The received data from the client.
-        player : object
-            The player object.
-        """
-        if data == "reset":
-            game.resetWent()
-        elif data != "get":
-            game.play(player, data)
-
-    def close_connection(self, conn, game_id):
-        """
-        Closes the connection with the client and deletes the game.
-
-        This method prints a message indicating that the connection was lost, 
-        attempts to delete the game from the games dictionary, decreases the id_count by 1, 
-        and closes the connection.
-
-        Parameters
-        ----------
-        conn : socket
-            The client socket object.
-        game_id : int
-            The id of the game.
-        """
+    def cleanup_game(self, conn, game_id):
         print("Lost connection")
         try:
             del self.games[game_id]
             print("Closing Game", game_id)
-        except:
-            pass
-        self.id_count -= 1
+        except Exception as e:
+            print(f"Error while closing game: {e}")
+        self.idCount -= 1
         conn.close()
 
-    def run(self):
+    def run_server(self):
         """
-        Runs the server.
+        Runs the server, accepting new connections and starting new games.
 
-        This method enters a loop where it waits for a client to connect. 
-        When a client connects, it increments the id_count, determines the player number, 
-        and either creates a new game or sets the existing game to ready. 
-        It then starts a new thread to handle the client.
+        This method enters a loop where it continuously accepts new connections.
+        For each new connection, it increments the idCount and calculates the game_id.
+        If the idCount is odd, it creates a new game. If the idCount is even, it marks the game as ready and sets the player number to 1.
+        It then starts a new thread to handle the client connection.
 
-        """
+        Parameters
+        ----------
+        None
+
+        Returns
+        -------
+        None
+    """
         while True:
             conn, addr = self.s.accept()
             print("Connected to:", addr)
 
-            self.id_count += 1
+            self.idCount += 1
             p = 0
-            game_id = (self.id_count - 1)//2
-            if self.id_count % 2 == 1:
+            game_id = (self.idCount - 1) // 2
+            if self.idCount % 2 == 1:
                 self.games[game_id] = Game(game_id)
                 print("Creating a new game...")
             else:
                 self.games[game_id].ready = True
                 p = 1
 
-            start_new_thread(self.handle_client, (conn, p, game_id))
+            start_new_thread(self.threaded_client, (conn, p, game_id))
 
 if __name__ == "__main__":
-    if len(sys.argv) != 3:
-        print("Usage: python server.py <server> <port> \n e.g. python server.py localhost 5555")
-        sys.exit(1)
+    server = Server()
+    server.run_server()
 
-    try:
-        server = sys.argv[1]
-        port = int(sys.argv[2])
-    except ValueError:
-        print("Error: Port must be an integer")
-        sys.exit(1)
-
-    s = Server(server, port)
-    s.run()
